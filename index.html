@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SMART-POS v2 · ขาย (Pro)</title>
+<title>SMART-POS v2 · ระบบขายหน้าร้าน</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
@@ -44,16 +44,46 @@ body {
   color: var(--ink);
   font: 16px/1.4 Sarabun, system-ui, "Noto Sans Thai", sans-serif;
 }
+
+/* แถบนำทางหลักด้านบน */
+.topbar {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 10px 12px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nav-tabs {
+  display: flex;
+  gap: 6px;
+}
+.nav-tab {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-weight: 600;
+  cursor: pointer;
+}
+.nav-tab.on {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
 main {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 12px;
+  padding: 10px 12px 12px;
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr;
 }
 @media (min-width: 880px) {
-  main { grid-template-columns: 1.25fr 1fr; }
+  main.pos-grid { grid-template-columns: 1.25fr 1fr; }
 }
 section {
   background: var(--panel);
@@ -62,7 +92,7 @@ section {
   padding: 12px;
   min-width: 0;
 }
-h1 {
+h1, h2 {
   font-size: 18px;
   margin: 0 0 8px;
   display: flex;
@@ -71,7 +101,7 @@ h1 {
   align-items: center;
   flex-wrap: wrap;
 }
-h1 small {
+h1 small, h2 small {
   font-weight: 400;
   color: var(--mute);
   font-size: 13px;
@@ -80,21 +110,24 @@ input, select, button {
   font: inherit;
   color: inherit;
 }
-#q, .lg input {
+#q, .lg input, .form-input {
   width: 100%;
-  padding: 11px 12px;
-  font-size: 18px;
-  border: 2px solid var(--ink);
+  padding: 10px 12px;
+  font-size: 16px;
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg);
   margin-top: 4px;
+}
+#q {
+  font-size: 18px;
+  border: 2px solid var(--ink);
 }
 :focus-visible {
   outline: 3px solid var(--tag);
   outline-offset: 1px;
 }
 
-/* ปุ่มควบคุมด้านบน (Grid/List, เสียง, สรุปยอด) */
 .view-ctrl {
   display: inline-flex;
   gap: 4px;
@@ -115,7 +148,7 @@ input, select, button {
   font-weight: 600;
 }
 
-/* แถบหมวดหมู่สินค้า (Category Tabs) */
+/* แถบหมวดหมู่สินค้า */
 .cat-bar {
   display: flex;
   gap: 6px;
@@ -140,7 +173,7 @@ input, select, button {
   font-weight: 700;
 }
 
-/* รายการสินค้า (รองรับทั้งแบบตารางการ์ดมีรูป และแบบรายการแถว) */
+/* รายการสินค้า */
 .res {
   list-style: none;
   margin: 8px 0 0;
@@ -164,9 +197,7 @@ input, select, button {
   cursor: pointer;
   transition: transform .08s ease;
 }
-.res.grid li:active {
-  transform: scale(0.98);
-}
+.res.grid li:active { transform: scale(0.98); }
 .res.grid li.on, .res.grid li:hover {
   border-color: var(--tag);
   background: color-mix(in srgb, var(--tag) 18%, var(--bg));
@@ -208,9 +239,7 @@ input, select, button {
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
 }
-.res.grid .stock-badge.low {
-  background: var(--bad);
-}
+.res.grid .stock-badge.low { background: var(--bad); }
 .res.grid .p-title {
   font-size: 14px;
   font-weight: 700;
@@ -233,7 +262,7 @@ input, select, button {
   text-align: right;
 }
 
-/* มุมมองแบบรายการ (List) */
+/* มุมมองรายการ */
 .res.list li {
   display: flex;
   align-items: center;
@@ -284,13 +313,19 @@ input, select, button {
   overflow-y: auto;
 }
 table { width: 100%; border-collapse: collapse; }
-td {
-  padding: 7px 4px;
+td, th {
+  padding: 7px 6px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
+  text-align: left;
+}
+th {
+  font-size: 13px;
+  color: var(--mute);
+  background: var(--bg);
 }
 td.n { width: 100%; }
-td.r { text-align: right; white-space: nowrap; }
+td.r, th.r { text-align: right; white-space: nowrap; }
 .cart-item-wrap {
   display: flex;
   align-items: center;
@@ -342,7 +377,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--bg);
-  max-width: 90px;
+  max-width: 95px;
 }
 .x {
   border: 0;
@@ -378,9 +413,7 @@ select {
   cursor: text;
   text-align: right;
 }
-#party-input {
-  text-align: left !important;
-}
+#party-input { text-align: left !important; }
 .pay, .lg button {
   width: 100%;
   padding: 13px;
@@ -393,13 +426,8 @@ select {
   cursor: pointer;
   margin-top: 6px;
 }
-.pay.muted {
-  opacity: .55;
-}
-.lg button:disabled {
-  opacity: .4;
-  cursor: not-allowed;
-}
+.pay.muted { opacity: .55; }
+.lg button:disabled { opacity: .4; cursor: not-allowed; }
 .m.on {
   background: var(--ink) !important;
   color: var(--bg);
@@ -419,7 +447,6 @@ select {
   grid-column: 1 / -1;
 }
 
-/* รายการบิลที่ส่งไม่สำเร็จ (Failed Bills + Retry) */
 #fail {
   display: none;
   margin-top: 8px;
@@ -428,28 +455,14 @@ select {
   border-radius: 8px;
   background: color-mix(in srgb, var(--bad) 8%, var(--panel));
 }
-#fail summary {
-  color: var(--bad);
-  font-weight: 700;
-  cursor: pointer;
-}
-#fail ul {
-  padding-left: 18px;
-  margin: 6px 0;
-  font-size: 13px;
-}
-#fail li {
-  margin: 6px 0;
-}
-.fail-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
+#fail summary { color: var(--bad); font-weight: 700; cursor: pointer; }
+#fail ul { padding-left: 18px; margin: 6px 0; font-size: 13px; }
+#fail li { margin: 6px 0; }
+.fail-actions { display: flex; gap: 6px; margin-top: 6px; }
 
 .lg {
-  max-width: 380px;
-  margin: 12vh auto;
+  max-width: 420px;
+  margin: 8vh auto;
   padding: 0 14px;
 }
 .act-bar {
@@ -469,10 +482,7 @@ select {
   cursor: pointer;
   white-space: nowrap;
 }
-.btn-sub:disabled {
-  opacity: .4;
-  cursor: not-allowed;
-}
+.btn-sub:disabled { opacity: .4; cursor: not-allowed; }
 .badge-pill {
   background: var(--tag);
   color: var(--tagink);
@@ -483,20 +493,18 @@ select {
   margin-left: 4px;
 }
 
-/* Modal หน้าต่างป๊อปอัป (พักบิล / สรุปยอดกะ / ส่วนลดรายรายการ) */
+/* Modal หน้าต่างป๊อปอัป */
 dialog {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
   color: var(--ink);
   padding: 16px;
-  max-width: 480px;
+  max-width: 500px;
   width: 92%;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
 }
-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
-}
+dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
 .dlg-head {
   display: flex;
   justify-content: space-between;
@@ -505,10 +513,7 @@ dialog::backdrop {
   border-bottom: 1px solid var(--line);
   padding-bottom: 8px;
 }
-.dlg-head h2 {
-  margin: 0;
-  font-size: 18px;
-}
+.dlg-head h2 { margin: 0; font-size: 18px; }
 .dlg-close {
   border: 0;
   background: none;
@@ -538,15 +543,27 @@ dialog::backdrop {
   border: 1px solid var(--line);
   background: var(--bg);
 }
-.shift-card small {
-  display: block;
-  color: var(--mute);
+.shift-card small { display: block; color: var(--mute); }
+.shift-card strong { font-size: 20px; }
+
+/* ตารางจัดการข้อมูลหลังบ้าน (สินค้า / ประวัติบิล) */
+.table-scroll {
+  overflow-x: auto;
+  max-height: 68vh;
 }
-.shift-card strong {
-  font-size: 20px;
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.form-grid .full { grid-column: 1 / -1; }
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
 }
 
-/* ส่วนสำหรับพิมพ์ใบเสร็จ (แสดงเฉพาะตอนสั่งพิมพ์) */
+/* ส่วนสำหรับพิมพ์ใบเสร็จ */
 #receipt-area { display: none; }
 @media print {
   body {
@@ -554,7 +571,7 @@ dialog::backdrop {
     color: #000 !important;
     font-family: "Sarabun", monospace, sans-serif;
   }
-  main, .lg, dialog { display: none !important; }
+  .topbar, main, .lg, dialog { display: none !important; }
   #receipt-area {
     display: block !important;
     width: 100%;
@@ -568,6 +585,7 @@ dialog::backdrop {
     text-align: center;
     font-size: 16px;
     margin: 0 0 4px;
+    display: block;
   }
   #receipt-area .rc-meta {
     font-size: 11px;
@@ -611,17 +629,44 @@ dialog::backdrop {
 </head>
 <body>
 
+<!-- หน้าเข้าสู่ระบบ + ตั้งค่าเชื่อมต่อฐานข้อมูล Supabase -->
 <div class="lg" id="lg">
   <section>
-    <h1>SMART-POS v2 <small>Pro Edition</small></h1>
-    <input id="em" type="email" autocomplete="username" placeholder="อีเมล" aria-label="อีเมล">
+    <h1>SMART-POS v2 <small>Database Ready</small></h1>
+    <input id="em" type="email" autocomplete="username" placeholder="อีเมลพนักงาน (เช่น admin@shop.com)" aria-label="อีเมล">
     <input id="pw" type="password" autocomplete="current-password" placeholder="รหัสผ่าน" aria-label="รหัสผ่าน">
     <button id="go">เข้าสู่ระบบ</button>
     <div id="lerr" class="hint low" role="alert"></div>
+
+    <details style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px">
+      <summary style="cursor:pointer;font-size:13px;color:var(--mute)">⚙️ ตั้งค่าการเชื่อมต่อ Supabase Project</summary>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        <label class="form-label">Supabase Project URL:
+          <input id="cfg-url" class="form-input" placeholder="https://xxxx.supabase.co">
+        </label>
+        <label class="form-label">Supabase Anon Public Key:
+          <input id="cfg-key" class="form-input" placeholder="eyJhbGciOi...">
+        </label>
+        <button type="button" class="btn-sub" id="save-cfg">บันทึกการตั้งค่าและรีโหลด</button>
+      </div>
+    </details>
   </section>
 </div>
 
-<main id="app" style="display:none">
+<!-- แถบเมนูนำทางหลัก -->
+<header class="topbar" id="topbar" style="display:none">
+  <div class="nav-tabs">
+    <button type="button" class="nav-tab on" data-page="pos">🛒 หน้าขาย (POS)</button>
+    <button type="button" class="nav-tab" data-page="stock">📦 สินค้าและสต็อก</button>
+    <button type="button" class="nav-tab" data-page="history">🧾 ประวัติบิลขาย</button>
+  </div>
+  <div style="font-size:13px;color:var(--mute)">
+    <span id="who"></span> · <a href="#" id="out">ออกจากระบบ</a>
+  </div>
+</header>
+
+<!-- หน้าที่ 1: หน้าขาย POS -->
+<main id="page-pos" class="pos-grid" style="display:none">
   <section>
     <h1>
       <span>รายการสินค้า <small id="cnt"></small></span>
@@ -689,9 +734,115 @@ dialog::backdrop {
         <button class="btn-sub" id="failx">🗑️ ล้างรายการ</button>
       </div>
     </details>
-    <p class="hint"><span id="who"></span> · <a href="#" id="out">ออกจากระบบ</a></p>
   </section>
 </main>
+
+<!-- หน้าที่ 2: จัดการสินค้าและสต็อก (เชื่อมต่อตาราง products, skus, units, Storage) -->
+<main id="page-stock" style="display:none">
+  <section>
+    <h2>
+      <span>📦 จัดการสินค้าและสต็อกคงเหลือ</span>
+      <span class="view-ctrl">
+        <button type="button" class="vbtn on" id="new-prod-btn">+ เพิ่มสินค้าใหม่</button>
+        <button type="button" class="vbtn" id="stock-sync-btn">🔄 รีเฟรช</button>
+      </span>
+    </h2>
+    <input id="stock-q" class="form-input" placeholder="ค้นหาชื่อสินค้า รหัส SKU หรือบาร์โค้ด..." style="margin-bottom:10px">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>รูป</th>
+            <th>รหัส / ชื่อสินค้า</th>
+            <th>หมวดหมู่</th>
+            <th>หน่วยขาย & ราคา</th>
+            <th class="r">สต็อกคงเหลือ</th>
+            <th class="r">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="stock-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- หน้าที่ 3: ประวัติบิลขายจากฐานข้อมูลจริง (ตาราง docs) -->
+<main id="page-history" style="display:none">
+  <section>
+    <h2>
+      <span>🧾 ประวัติบิลขายล่าสุด (50 รายการล่าสุดจากฐานข้อมูล)</span>
+      <button type="button" class="vbtn" id="hist-sync-btn">🔄 โหลดใหม่</button>
+    </h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>เลขที่เอกสาร</th>
+            <th>วัน-เวลา</th>
+            <th>ลูกค้า</th>
+            <th>ชำระโดย</th>
+            <th class="r">ส่วนลด</th>
+            <th class="r">ยอดสุทธิ</th>
+            <th class="r">ใบเสร็จ</th>
+          </tr>
+        </thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Modal: เพิ่มสินค้าใหม่ / เติมสต็อก -->
+<dialog id="dlg-product">
+  <div class="dlg-head">
+    <h2>+ เพิ่มสินค้าใหม่ลงฐานข้อมูล</h2>
+    <button class="dlg-close" data-close="dlg-product">×</button>
+  </div>
+  <form id="prod-form" class="form-grid">
+    <label class="form-label">รหัสสินค้า (Code) *
+      <input id="np-code" class="form-input" required placeholder="เช่น P006">
+    </label>
+    <label class="form-label">หมวดหมู่ (Category)
+      <input id="np-cat" class="form-input" value="ทั่วไป" placeholder="เช่น เครื่องดื่ม">
+    </label>
+    <label class="form-label full">ชื่อสินค้า *
+      <input id="np-name" class="form-input" required placeholder="เช่น โค้ก กระป๋อง 325 มล.">
+    </label>
+    <label class="form-label">หน่วยนับหลัก *
+      <input id="np-unit" class="form-input" required value="ชิ้น" placeholder="เช่น กระป๋อง, ขวด, ชิ้น">
+    </label>
+    <label class="form-label">บาร์โค้ด (Barcode)
+      <input id="np-bc" class="form-input" placeholder="สแกนหรือพิมพ์บาร์โค้ด">
+    </label>
+    <label class="form-label">ราคาขาย (บาท) *
+      <input id="np-price" type="number" step="0.01" min="0" class="form-input" required placeholder="0.00">
+    </label>
+    <label class="form-label">สต็อกเริ่มต้น *
+      <input id="np-stock" type="number" step="any" class="form-input" required value="0">
+    </label>
+    <label class="form-label full">อัปโหลดรูปภาพสินค้า (Storage: products)
+      <input id="np-file" type="file" accept="image/*" class="form-input">
+    </label>
+    <div class="full act-bar">
+      <button type="submit" class="pay" id="np-save" style="font-size:16px;padding:10px">บันทึกสินค้า</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Modal: ปรับปรุงสต็อก (Stock Adjustment) -->
+<dialog id="dlg-adjust">
+  <div class="dlg-head">
+    <h2 id="adj-title">ปรับสต็อกสินค้า</h2>
+    <button class="dlg-close" data-close="dlg-adjust">×</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div id="adj-current" style="font-size:14px;color:var(--mute)"></div>
+    <label class="form-label">จำนวนที่เพิ่ม (+) หรือลด (-) ในหน่วยหลัก:
+      <input id="adj-delta" type="number" step="any" class="form-input" placeholder="เช่น 24 (รับเข้า) หรือ -2 (ชำรุด)">
+    </label>
+    <button type="button" class="pay" id="adj-save" style="font-size:16px;padding:10px">ยืนยันปรับยอดสต็อก</button>
+  </div>
+</dialog>
 
 <!-- Modal: จัดการบิลที่พักไว้ (Hold Bills) -->
 <dialog id="dlg-hold">
@@ -722,11 +873,11 @@ dialog::backdrop {
     <button class="dlg-close" data-close="dlg-line">×</button>
   </div>
   <div style="display:flex;flex-direction:column;gap:10px">
-    <label>จำนวนสินค้า:
-      <input id="line-qty-input" type="number" step="any" min="0" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
+    <label class="form-label">จำนวนสินค้า:
+      <input id="line-qty-input" type="number" step="any" min="0" class="form-input">
     </label>
-    <label>ส่วนลดเฉพาะรายการนี้ (บาท หรือ % เช่น 10%):
-      <input id="line-disc-input" type="text" placeholder="0" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
+    <label class="form-label">ส่วนลดเฉพาะรายการนี้ (บาท หรือ % เช่น 10%):
+      <input id="line-disc-input" type="text" placeholder="0" class="form-input">
     </label>
     <div class="act-bar">
       <button class="pay" id="line-save" style="font-size:16px;padding:10px">ตกลง</button>
@@ -739,11 +890,27 @@ dialog::backdrop {
 <div id="receipt-area"></div>
 
 <script>
-const SB_URL = "https://xobdkddyvbgalrvlljha.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvYmRrZGR5dmJnYWxydmxsamhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU3MzE2NDAsImV4cCI6MjExMTMwNzY0MH0.JwIPgOW5ocpQ4Pksachy9mmm3nVjKPfKTRsmCXijr9U";
+// ===== การเชื่อมต่อ Supabase (รองรับการเปลี่ยน URL/Key ผ่านหน้าตั้งค่าได้) =====
+const DEFAULT_SB_URL = "https://xobdkddyvbgalrvlljha.supabase.co";
+const DEFAULT_SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvYmRrZGR5dmJnYWxydmxsamhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU3MzE2NDAsImV4cCI6MjExMTMwNzY0MH0.JwIPgOW5ocpQ4Pksachy9mmm3nVjKPfKTRsmCXijr9U";
+
+const SB_URL = localStorage.getItem("pos_sb_url") || DEFAULT_SB_URL;
+const SB_KEY = localStorage.getItem("pos_sb_key") || DEFAULT_SB_KEY;
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const $ = s => document.querySelector(s);
+$("#cfg-url").value = SB_URL;
+$("#cfg-key").value = SB_KEY;
+
+$("#save-cfg").onclick = () => {
+  const u = $("#cfg-url").value.trim();
+  const k = $("#cfg-key").value.trim();
+  if (!u || !k) return;
+  localStorage.setItem("pos_sb_url", u);
+  localStorage.setItem("pos_sb_key", k);
+  location.reload();
+};
+
 const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
 const fmt = n => round2(+n || 0).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -753,7 +920,7 @@ const uid = () => crypto.randomUUID
       (c ^ (crypto.getRandomValues ? crypto.getRandomValues(new Uint8Array(1))[0] : Math.random() * 256) & 15 >> c / 4).toString(16)
     );
 
-// ===== 1. ระบบจัดเก็บข้อมูล IndexedDB + Memory Cache (แทนที่ localStorage เพื่อป้องกัน Quota เต็ม) =====
+// ===== 1. ระบบจัดเก็บข้อมูล IndexedDB + Memory Cache =====
 const store = (() => {
   const mem = new Map();
   let dbPromise = null;
@@ -779,48 +946,24 @@ const store = (() => {
           const r = tx.objectStore("kv").get(k);
           r.onsuccess = () => {
             if (r.result !== undefined) mem.set(k, r.result);
-            else {
-              // ย้ายข้อมูลเก่าจาก localStorage (Migration) ถ้ามี
-              try {
-                const legacy = localStorage.getItem(k);
-                if (legacy !== null) {
-                  const parsed = JSON.parse(legacy);
-                  mem.set(k, parsed);
-                  this.set(k, parsed);
-                  localStorage.removeItem(k);
-                }
-              } catch (e) {}
-            }
             res();
           };
           r.onerror = () => res();
         })));
-      } catch (e) {
-        // Fallback กรณีเปิดในโหมดที่ปิด IndexedDB
-        keys.forEach(k => {
-          try {
-            const v = localStorage.getItem(k);
-            if (v !== null) mem.set(k, JSON.parse(v));
-          } catch (err) {}
-        });
-      }
+      } catch (e) {}
     },
-    get(k, d) {
-      return mem.has(k) ? mem.get(k) : d;
-    },
+    get(k, d) { return mem.has(k) ? mem.get(k) : d; },
     set(k, v) {
       mem.set(k, v);
       getDB().then(db => {
         const tx = db.transaction("kv", "readwrite");
         tx.objectStore("kv").put(v, k);
-      }).catch(() => {
-        try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
-      });
+      }).catch(() => {});
     }
   };
 })();
 
-// ===== 2. ระบบเสียงแจ้งเตือน (Web Audio API - ไม่ต้องพึ่งไฟล์เสียงภายนอก) =====
+// ===== 2. ระบบเสียงแจ้งเตือน (Web Audio API) =====
 let soundEnabled = true;
 let audioCtx = null;
 function beep(type = "ok") {
@@ -836,7 +979,7 @@ function beep(type = "ok") {
 
     if (type === "ok") {
       osc.type = "sine";
-      osc.frequency.setValueAtTime(1046.5, now); // C6
+      osc.frequency.setValueAtTime(1046.5, now);
       gain.gain.setValueAtTime(0.08, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       osc.start(now);
@@ -870,7 +1013,7 @@ let PARTIES = [];
 let PARTY_MAP = new Map();
 let cart = [];
 let hits = [];
-let renderLimit = 60; // Infinite Scroll: แสดงทีละ 60 รายการ
+let renderLimit = 60;
 let sel = 0;
 let method = "CASH";
 let viewMode = "grid";
@@ -878,6 +1021,7 @@ let lastDoc = null;
 let busy = false;
 let payLock = false;
 let editingLineIdx = -1;
+let adjustingSkuId = null;
 
 function resolveImgUrl(raw) {
   if (!raw) return "";
@@ -892,7 +1036,7 @@ function resolveImgUrl(raw) {
   return `${SB_URL}/storage/v1/object/public/products/${cleanPath}`;
 }
 
-// ===== 3. แคตตาล็อกและหมวดหมู่สินค้า =====
+// ===== 3. ดึงและประกอบแคตตาล็อกจากตาราง products, skus, units, parties =====
 function build(c) {
   const P = new Map(c.p.map(r => [r[0], r]));
   const U = new Map();
@@ -907,7 +1051,7 @@ function build(c) {
   });
 
   SK = c.s.map(r => {
-    const p = P.get(r[1]) || [0, "", "(ไม่มีกลุ่ม)", "", ""];
+    const p = P.get(r[1]) || [0, "", "(ไม่มีกลุ่ม)", "", "ทั่วไป"];
     const us = (U.get(r[0]) || []).sort((a, b) => (a.r !== 1) - (b.r !== 1) || b.r - a.r);
     const rawImg = r[7] || p[3] || "";
     const catName = (p[4] || "").trim() || "ทั่วไป";
@@ -915,11 +1059,13 @@ function build(c) {
 
     const s = {
       id: r[0],
+      productId: r[1],
       code: r[2],
       name: p[2],
       cat: catName,
       v: r[3] || "",
       bc: r[4] || "",
+      baseUnit: r[5] || "ชิ้น",
       stock: +r[6],
       img: resolveImgUrl(rawImg),
       units: us
@@ -938,6 +1084,8 @@ function build(c) {
     s,
     t: (s.code + " " + s.name + " " + s.v + " " + s.bc + " " + s.cat).toLowerCase().replace(/["']/g, "")
   }));
+
+  renderStockTable();
 }
 
 function renderCategories() {
@@ -955,10 +1103,12 @@ function renderCategories() {
   `).join("");
 }
 
-async function page(t, cols) {
+async function page(t, cols, filterFn = null) {
   let all = [], from = 0;
   for (;;) {
-    const { data, error } = await sb.from(t).select(cols).order("id").range(from, from + 999);
+    let q = sb.from(t).select(cols).order("id").range(from, from + 999);
+    if (filterFn) q = filterFn(q);
+    const { data, error } = await q;
     if (error) throw error;
     all = all.concat(data);
     if (data.length < 1000) break;
@@ -967,67 +1117,25 @@ async function page(t, cols) {
   return all;
 }
 
-// ดึงคอลัมน์เสริม (รูปภาพ / หมวดหมู่) แบบยืดหยุ่นไม่พังแม้ไม่มีคอลัมน์ใน DB
-async function pageProductsSmart() {
-  const imgCols = ["image_url", "image", "img", "photo_url"];
-  const catCols = ["category", "category_name", "group_name", "type"];
-  let foundImg = "";
-  let foundCat = "";
-
-  for (const col of imgCols) {
-    try {
-      await sb.from("products").select(col).limit(1);
-      foundImg = col;
-      break;
-    } catch (e) {}
-  }
-  for (const col of catCols) {
-    try {
-      await sb.from("products").select(col).limit(1);
-      foundCat = col;
-      break;
-    } catch (e) {}
-  }
-
-  const cols = ["id", "code", "name", foundImg, foundCat].filter(Boolean).join(",");
-  const rows = await page("products", cols);
-  return rows.map(r => ({
-    ...r,
-    _img: foundImg ? (r[foundImg] || "") : "",
-    _cat: foundCat ? (r[foundCat] || "") : ""
-  }));
-}
-
-async function pageWithOptionalImg(t, baseCols, imgCols = ["image_url", "image", "img", "photo_url"]) {
-  for (const col of imgCols) {
-    try {
-      const { error } = await sb.from(t).select(col).limit(1);
-      if (!error) {
-        const rows = await page(t, `${baseCols},${col}`);
-        return rows.map(r => ({ ...r, _img: r[col] || "" }));
-      }
-    } catch (e) {}
-  }
-  const rows = await page(t, baseCols);
-  return rows.map(r => ({ ...r, _img: "" }));
-}
-
 async function refresh(manual = false) {
   if (manual) {
     $("#refresh-btn").disabled = true;
     $("#refresh-btn").textContent = "⏳ กำลังซิงก์...";
   }
   try {
+    // ดึงข้อมูลตรงตามคอลัมน์ใน supabase-smart-pos-v2-setup.sql
     const [p, s, u, pt] = await Promise.all([
-      pageProductsSmart(),
-      pageWithOptionalImg("skus", "id,product_id,code,variant,barcode,base_unit,stock"),
+      page("products", "id,code,name,category,image_url", q => q.eq("is_active", true)),
+      page("skus", "id,product_id,code,variant,barcode,base_unit,stock,image_url", q => q.eq("is_active", true)),
       page("units", "id,sku_id,name,ratio,price,barcode"),
-      sb.from("parties").select("id,name").eq("kind", "CUSTOMER")
+      sb.from("parties").select("id,name,balance").in("kind", ["CUSTOMER", "BOTH"]).order("name")
     ]);
+    if (pt.error) throw pt.error;
+
     const c = {
-      p: p.map(r => [r.id, r.code, r.name, r._img, r._cat]),
-      s: s.map(r => [r.id, r.product_id, r.code, r.variant, r.barcode, r.base_unit, r.stock, r._img]),
-      u: u.map(r => [r.id, r.sku_id, r.name, r.ratio, r.price, r.barcode])
+      p: p.map(r => [r.id, r.code, r.name, r.image_url || "", r.category || "ทั่วไป"]),
+      s: s.map(r => [r.id, r.product_id, r.code, r.variant || "", r.barcode || "", r.base_unit, r.stock, r.image_url || ""]),
+      u: u.map(r => [r.id, r.sku_id, r.name, r.ratio, r.price, r.barcode || ""])
     };
     store.set("v2cat", c);
     store.set("v2parties", pt.data || []);
@@ -1037,13 +1145,14 @@ async function refresh(manual = false) {
     render();
     if (manual) {
       $("#msg").className = "";
-      $("#msg").textContent = "อัปเดตข้อมูลสินค้าและสต็อกล่าสุดแล้ว";
+      $("#msg").textContent = "✅ อัปเดตข้อมูลสินค้าและสต็อกจากฐานข้อมูลแล้ว";
     }
     return true;
   } catch (e) {
+    console.error(e);
     if (manual) {
       $("#msg").className = "err";
-      $("#msg").textContent = "ซิงก์ข้อมูลไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)";
+      $("#msg").textContent = "❌ ซิงก์ไม่สำเร็จ: " + (e.message || "ตรวจสอบการเชื่อมต่อฐานข้อมูล");
     }
     return false;
   } finally {
@@ -1071,11 +1180,11 @@ function getSelectedPartyId() {
   if (PARTY_MAP.has(val)) return PARTY_MAP.get(val);
   if (PARTY_MAP.has(val.toLowerCase())) return PARTY_MAP.get(val.toLowerCase());
   const match = val.match(/\(#([^)]+)\)$/);
-  if (match && PARTIES.some(p => String(p.id) === match[1])) return match[1];
+  if (match && PARTIES.some(p => String(p.id) === match[1])) return Number(match[1]);
   return null;
 }
 
-// ===== 4. ค้นหา และ Infinite Scroll (ป้องกันหน้าค้างเมื่อสินค้าเยอะ) =====
+// ===== 4. ค้นหาและเรนเดอร์สินค้า (Infinite Scroll) =====
 function setViewMode(mode) {
   viewMode = mode;
   store.set("v2view", mode);
@@ -1087,7 +1196,6 @@ function setViewMode(mode) {
   renderRes(false);
 }
 
-// คำนวณสต็อกคงเหลือจริงแบบหักจำนวนที่อยู่ในตะกร้าปัจจุบันแล้ว
 function getAvailableStock(sku) {
   const inCartBase = cart
     .filter(l => l.s.id === sku.id)
@@ -1169,7 +1277,7 @@ function renderRes(append = false) {
   }
 }
 
-// ===== 5. ตะกร้าสินค้า ส่วนลดรายรายการ และส่วนลดเปอร์เซ็นต์ =====
+// ===== 5. ตะกร้าสินค้าและการคำนวณ =====
 function add(s, u) {
   u = u || s.units[0];
   const avail = getAvailableStock(s);
@@ -1186,7 +1294,6 @@ function add(s, u) {
 
 const base = l => l.q * l.u.r;
 
-// คำนวณส่วนลด (รองรับทั้งจำนวนบาท เช่น "20" และเปอร์เซ็นต์ เช่น "10%")
 function parseDiscount(rawStr, baseAmount) {
   const str = String(rawStr ?? "").trim();
   if (!str) return 0;
@@ -1256,7 +1363,7 @@ function render() {
     : '<tr><td class="empty">ยังไม่มีสินค้าในบิล สแกนหรือคลิกเลือกสินค้าด้านซ้าย</td></tr>';
 
   $("#total").textContent = fmt(total());
-  renderRes(false); // อัปเดตตัวเลขสต็อกคงเหลือบนการ์ดสินค้าแบบ Real-time
+  renderRes(false);
   calc();
 }
 
@@ -1283,7 +1390,6 @@ function calc() {
   $("#credrow").style.display = method === "CREDIT" ? "flex" : "none";
   $("#chg").textContent = fmt(Math.max(0, round2(r - t)));
 
-  // เปิดให้กดปุ่มได้เสมอ เพื่อแจ้งเตือนเหตุผลที่บันทึกไม่ได้ (แทนการปิดปุ่มแบบเงียบๆ)
   $("#pay").classList.toggle("muted", !check.ok);
   $("#print-last").disabled = !lastDoc;
   $("#hold-btn").disabled = !cart.length;
@@ -1310,7 +1416,7 @@ function resetCart(askConfirm = false) {
   $("#q").focus();
 }
 
-// ===== 6. ระบบพักบิล (Hold / Park Bill) =====
+// ===== 6. พักบิล (Hold Bill) =====
 function holdCurrentBill() {
   if (!cart.length) return;
   const holds = store.get("v2holds", []);
@@ -1325,12 +1431,7 @@ function holdCurrentBill() {
     method,
     party: $("#party-input").value,
     tot: total(),
-    items: cart.map(l => ({
-      skuId: l.s.id,
-      unitId: l.u.id,
-      q: l.q,
-      discRaw: l.discRaw
-    }))
+    items: cart.map(l => ({ skuId: l.s.id, unitId: l.u.id, q: l.q, discRaw: l.discRaw }))
   });
   store.set("v2holds", holds);
   resetCart(false);
@@ -1388,7 +1489,7 @@ function recallHoldBill(index) {
   $("#msg").textContent = `เรียกคืน "${h.note}" แล้ว`;
 }
 
-// ===== 7. บันทึกบิล (พร้อม Double-Click Guard และแก้บั๊กยอดรับเงิน 0) =====
+// ===== 7. บันทึกบิลและส่งเข้า RPC post_doc =====
 function pay() {
   if (payLock) return;
   const check = validateCheckout();
@@ -1404,20 +1505,17 @@ function pay() {
   setTimeout(() => { payLock = false; }, 350);
 
   const t0 = performance.now();
-  const sTot = sub();
   const billDisc = getBillDisc();
   const tot = total();
   const partyId = method === "CREDIT" ? getSelectedPartyId() : null;
-  const partyObj = partyId ? PARTIES.find(p => String(p.id) === String(partyId)) : null;
+  const partyObj = partyId ? PARTIES.find(p => Number(p.id) === Number(partyId)) : null;
 
-  // แก้บั๊ก: ตรวจสอบช่องรับเงินแบบชัดเจน (ถ้าเว้นว่างถือว่ารับพอดี แต่ถ้ากรอก 0 จะใช้ค่า 0)
   const rawRecvStr = $("#recv").value.trim();
   const recvVal = method === "CASH"
     ? (rawRecvStr === "" ? tot : Math.max(0, parseFloat(rawRecvStr) || 0))
     : tot;
   const chgVal = method === "CASH" ? Math.max(0, round2(recvVal - tot)) : 0;
 
-  // คำนวณส่วนลดรวมทั้งหมด (ส่วนลดรายรายการ + ส่วนลดท้ายบิล) เพื่อส่งให้ Backend RPC
   const lineDiscTotal = round2(cart.reduce((sum, l) => sum + getLineNet(l).disc, 0));
   const totalCombinedDisc = round2(lineDiscTotal + billDisc);
 
@@ -1428,8 +1526,7 @@ function pay() {
     partyName: partyObj ? partyObj.name : "",
     sub: round2(cart.reduce((sum, l) => sum + getLineNet(l).gross, 0)),
     disc: totalCombinedDisc,
-    billDisc: billDisc,
-    paid: method === "CREDIT" ? 0 : null,
+    paid: method === "CREDIT" ? 0 : tot,
     recv: recvVal,
     chg: chgVal,
     tot: tot,
@@ -1451,11 +1548,12 @@ function pay() {
   };
 
   cart.forEach(l => l.s.stock = round2(l.s.stock - base(l)));
+  renderStockTable();
+
   const o = store.get("v2out", []);
   o.push(doc);
   store.set("v2out", o);
 
-  // บันทึกประวัติยอดขายประจำกะ
   const shiftDocs = store.get("v2shift", []);
   shiftDocs.push(doc);
   store.set("v2shift", shiftDocs);
@@ -1487,7 +1585,7 @@ function printReceipt(doc = lastDoc) {
     <h2>ใบเสร็จรับเงิน / บิลเงินสด</h2>
     <div class="rc-meta">
       วันที่: ${esc(doc.at)}<br>
-      เลขที่อ้างอิง: ${esc(doc.cid.slice(0, 8).toUpperCase())}<br>
+      เลขที่อ้างอิง: ${esc((doc.doc_no || doc.cid.slice(0, 8)).toUpperCase())}<br>
       ชำระโดย: ${esc(pmLabel)}${doc.partyName ? " (" + esc(doc.partyName) + ")" : ""}
     </div>
     <table><tbody>${itemsHtml}</tbody></table>
@@ -1497,16 +1595,15 @@ function printReceipt(doc = lastDoc) {
       <div class="rc-row"><span>ส่วนลดรวม</span><span>-${fmt(doc.disc)}</span></div>
     ` : ""}
     <div class="rc-tot"><span>ยอดสุทธิ</span><span>${fmt(doc.tot)}</span></div>
-    ${doc.pm === "CASH" ? `
+    ${doc.pm === "CASH" && doc.recv != null ? `
       <div class="rc-row"><span>รับเงิน</span><span>${fmt(doc.recv)}</span></div>
-      <div class="rc-row"><span>เงินทอน</span><span>${fmt(doc.chg)}</span></div>
+      <div class="rc-row"><span>เงินทอน</span><span>${fmt(doc.chg || 0)}</span></div>
     ` : ""}
     <div class="rc-foot">ขอบคุณที่ใช้บริการ</div>
   `;
   window.print();
 }
 
-// ===== 8. ระบบซิงก์คิวบิล และ Retry บิลที่ไม่สำเร็จ =====
 async function flush() {
   if (busy) return;
   busy = true;
@@ -1517,7 +1614,7 @@ async function flush() {
       if (!o.length) break;
       const d = o[0];
 
-      const { error } = await sb.rpc("post_doc", {
+      const { data, error } = await sb.rpc("post_doc", {
         p_client_id: d.cid,
         p_type: "SALE",
         p_party: d.party,
@@ -1545,13 +1642,17 @@ async function flush() {
         $("#msg").textContent = "มีบิลที่เซิร์ฟเวอร์ปฏิเสธ: " + error.message;
       } else {
         syncedAny = true;
+        if (data && data.doc_no && lastDoc && lastDoc.cid === d.cid) {
+          lastDoc.doc_no = data.doc_no;
+          store.set("v2last", lastDoc);
+        }
       }
     }
   } finally {
     busy = false;
     calc();
     showFail();
-    if (syncedAny) refresh(false); // อัปเดตสต็อกจริงจากฐานข้อมูลหลังซิงก์สำเร็จ
+    if (syncedAny) refresh(false);
   }
 }
 
@@ -1590,7 +1691,246 @@ function retryFailedBills(singleIndex = null) {
   flush();
 }
 
-// ===== 9. สรุปยอดขายกะ (Shift Summary / Z-Report) =====
+// ===== 8. หน้าจัดการสินค้าและสต็อก (เชื่อมต่อ products, skus, units, Storage) =====
+function renderStockTable() {
+  const q = ($("#stock-q")?.value || "").trim().toLowerCase();
+  const rows = SK.filter(s =>
+    !q ||
+    s.name.toLowerCase().includes(q) ||
+    s.code.toLowerCase().includes(q) ||
+    s.bc.toLowerCase().includes(q) ||
+    s.cat.toLowerCase().includes(q)
+  );
+
+  $("#stock-tbody").innerHTML = rows.length
+    ? rows.map(s => `
+      <tr>
+        <td>
+          ${s.img
+            ? `<img src="${esc(s.img)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--line)">`
+            : `<span style="font-size:11px;color:var(--mute)">ไม่มีรูป</span>`}
+        </td>
+        <td>
+          <b>${esc(s.name)}</b> <small>${esc(s.v)}</small><br>
+          <small style="color:var(--mute)">SKU: ${esc(s.code)} ${s.bc ? `| BC: ${esc(s.bc)}` : ""}</small>
+        </td>
+        <td><span class="badge-pill" style="background:var(--bg);color:var(--ink);border:1px solid var(--line)">${esc(s.cat)}</span></td>
+        <td>
+          ${s.units.map(u => `<div style="font-size:13px">${esc(u.n)} (×${u.r}): <b>${fmt(u.p)} ฿</b></div>`).join("")}
+        </td>
+        <td class="r">
+          <strong class="${s.stock <= 0 ? "low" : ""}" style="font-size:16px">${s.stock}</strong> <small>${esc(s.baseUnit)}</small>
+        </td>
+        <td class="r">
+          <button type="button" class="vbtn" data-adj="${s.id}">± ปรับสต็อก</button>
+        </td>
+      </tr>
+    `).join("")
+    : '<tr><td colspan="6" class="empty">ไม่พบรายการสินค้า</td></tr>';
+}
+
+$("#stock-q").addEventListener("input", renderStockTable);
+$("#stock-sync-btn").onclick = () => refresh(true);
+$("#new-prod-btn").onclick = () => {
+  $("#prod-form").reset();
+  $("#np-cat").value = "ทั่วไป";
+  $("#np-unit").value = "ชิ้น";
+  $("#np-stock").value = "0";
+  $("#dlg-product").showModal();
+};
+
+// บันทึกสินค้าใหม่ลง Supabase (products -> skus -> units + Storage)
+$("#prod-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = $("#np-save");
+  btn.disabled = true;
+  btn.textContent = "⏳ กำลังบันทึก...";
+
+  try {
+    const code = $("#np-code").value.trim();
+    const cat = $("#np-cat").value.trim() || "ทั่วไป";
+    const name = $("#np-name").value.trim();
+    const unitName = $("#np-unit").value.trim() || "ชิ้น";
+    const bc = $("#np-bc").value.trim() || null;
+    const price = round2(parseFloat($("#np-price").value) || 0);
+    const stock = parseFloat($("#np-stock").value) || 0;
+    const file = $("#np-file").files[0];
+
+    let imageUrl = null;
+    if (file) {
+      const ext = file.name.split(".").pop() || "jpg";
+      const fileName = `${Date.now()}_${uid().slice(0, 6)}.${ext}`;
+      const { error: upErr } = await sb.storage.from("products").upload(fileName, file);
+      if (upErr) throw new Error("อัปโหลดรูปไม่สำเร็จ: " + upErr.message);
+      imageUrl = fileName;
+    }
+
+    // 1. Insert products
+    const { data: prodData, error: pErr } = await sb
+      .from("products")
+      .insert({ code, name, category: cat, image_url: imageUrl })
+      .select("id")
+      .single();
+    if (pErr) throw pErr;
+
+    // 2. Insert skus
+    const { data: skuData, error: sErr } = await sb
+      .from("skus")
+      .insert({
+        product_id: prodData.id,
+        code: `SKU-${code}`,
+        variant: "",
+        barcode: bc,
+        base_unit: unitName,
+        stock: stock,
+        image_url: imageUrl
+      })
+      .select("id")
+      .single();
+    if (sErr) throw sErr;
+
+    // 3. Insert units
+    const { error: uErr } = await sb
+      .from("units")
+      .insert({
+        sku_id: skuData.id,
+        name: unitName,
+        ratio: 1,
+        price: price,
+        barcode: bc
+      });
+    if (uErr) throw uErr;
+
+    $("#dlg-product").close();
+    await refresh(false);
+    beep("pay");
+    alert(`เพิ่มสินค้า "${name}" เรียบร้อยแล้ว`);
+  } catch (err) {
+    beep("err");
+    alert("เกิดข้อผิดพลาด: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "บันทึกสินค้า";
+  }
+});
+
+// เปิดหน้าต่างปรับสต็อก
+$("#stock-tbody").addEventListener("click", e => {
+  const btn = e.target.closest("[data-adj]");
+  if (!btn) return;
+  const s = SK.find(x => x.id === Number(btn.dataset.adj));
+  if (!s) return;
+  adjustingSkuId = s.id;
+  $("#adj-title").textContent = `ปรับสต็อก: ${s.name}`;
+  $("#adj-current").textContent = `สต็อกปัจจุบันในระบบ: ${s.stock} ${s.baseUnit}`;
+  $("#adj-delta").value = "";
+  $("#dlg-adjust").showModal();
+});
+
+$("#adj-save").onclick = async () => {
+  const s = SK.find(x => x.id === adjustingSkuId);
+  const delta = parseFloat($("#adj-delta").value);
+  if (!s || isNaN(delta) || delta === 0) return;
+
+  const btn = $("#adj-save");
+  btn.disabled = true;
+  try {
+    const newStock = round2(s.stock + delta);
+    const { error } = await sb
+      .from("skus")
+      .update({ stock: newStock, updated_at: new Date().toISOString() })
+      .eq("id", s.id);
+    if (error) throw error;
+
+    $("#dlg-adjust").close();
+    await refresh(false);
+    beep("ok");
+  } catch (err) {
+    alert("ปรับสต็อกไม่สำเร็จ: " + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+// ===== 9. หน้าประวัติบิลขายจากฐานข้อมูลจริง (ตาราง docs) =====
+async function loadOrderHistory() {
+  const tbody = $("#hist-tbody");
+  tbody.innerHTML = '<tr><td colspan="7" class="empty">⏳ กำลังโหลดประวัติบิลจากฐานข้อมูล...</td></tr>';
+  try {
+    const { data, error } = await sb
+      .from("docs")
+      .select("id, client_id, doc_no, subtotal, discount, total, pay_method, paid_amount, created_at, parties(name)")
+      .eq("doc_type", "SALE")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    if (!data || !data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">ยังไม่มีประวัติบิลขายในฐานข้อมูล</td></tr>';
+      return;
+    }
+
+    const pmMap = { CASH: "เงินสด", TRANSFER: "โอน", CREDIT: "ขายเชื่อ" };
+    tbody.innerHTML = data.map(d => `
+      <tr>
+        <td><b>${esc(d.doc_no)}</b></td>
+        <td><small>${new Date(d.created_at).toLocaleString("th-TH")}</small></td>
+        <td>${esc(d.parties?.name || "ลูกค้าทั่วไป")}</td>
+        <td>${esc(pmMap[d.pay_method] || d.pay_method)}</td>
+        <td class="r">${fmt(d.discount)}</td>
+        <td class="r"><strong style="color:var(--ok)">${fmt(d.total)}</strong></td>
+        <td class="r">
+          <button type="button" class="vbtn" data-reprint="${d.id}">🖨️ พิมพ์</button>
+        </td>
+      </tr>
+    `).join("");
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty low">โหลดข้อมูลไม่สำเร็จ: ${esc(err.message)}</td></tr>`;
+  }
+}
+
+$("#hist-sync-btn").onclick = loadOrderHistory;
+$("#hist-tbody").addEventListener("click", async e => {
+  const btn = e.target.closest("[data-reprint]");
+  if (!btn) return;
+  const docId = Number(btn.dataset.reprint);
+  btn.disabled = true;
+  try {
+    const { data: doc, error } = await sb
+      .from("docs")
+      .select("*, parties(name), doc_lines(qty, unit_price, line_total, skus(variant, products(name)), units(name))")
+      .eq("id", docId)
+      .single();
+    if (error) throw error;
+
+    printReceipt({
+      cid: doc.client_id,
+      doc_no: doc.doc_no,
+      pm: doc.pay_method,
+      partyName: doc.parties?.name || "",
+      sub: doc.subtotal,
+      disc: doc.discount,
+      tot: doc.total,
+      recv: null,
+      at: new Date(doc.created_at).toLocaleString("th-TH"),
+      items: (doc.doc_lines || []).map(l => ({
+        name: l.skus?.products?.name || "สินค้า",
+        variant: l.skus?.variant || "",
+        unit: l.units?.name || "",
+        qty: l.qty,
+        price: l.unit_price,
+        disc: 0,
+        amount: l.line_total
+      }))
+    });
+  } catch (err) {
+    alert("ไม่สามารถดึงข้อมูลใบเสร็จได้: " + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ===== 10. สรุปยอดขายกะ =====
 function openShiftModal() {
   const docs = store.get("v2shift", []);
   const cash = docs.filter(d => d.pm === "CASH").reduce((s, d) => s + d.tot, 0);
@@ -1656,7 +1996,22 @@ function printShiftReport() {
   window.print();
 }
 
-// ===== เหตุการณ์ (Events) =====
+// ===== สลับหน้า Tab (POS / Stock / History) =====
+document.querySelectorAll(".nav-tab").forEach(tab => {
+  tab.onclick = () => {
+    const target = tab.dataset.page;
+    document.querySelectorAll(".nav-tab").forEach(t => t.classList.toggle("on", t === tab));
+    $("#page-pos").style.display = target === "pos" ? "grid" : "none";
+    $("#page-stock").style.display = target === "stock" ? "grid" : "none";
+    $("#page-history").style.display = target === "history" ? "grid" : "none";
+
+    if (target === "pos") $("#q").focus();
+    if (target === "stock") renderStockTable();
+    if (target === "history") loadOrderHistory();
+  };
+});
+
+// ===== Events หน้าขาย POS =====
 $("#sound-btn").onclick = () => {
   soundEnabled = !soundEnabled;
   store.set("v2sound", soundEnabled);
@@ -1678,7 +2033,6 @@ $("#cat-bar").addEventListener("click", e => {
   search();
 });
 
-// Infinite Scroll Listener
 $("#res").addEventListener("scroll", e => {
   const el = e.target;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) {
@@ -1760,7 +2114,6 @@ $("#cart").addEventListener("change", e => {
   render();
 });
 
-// Events ของ Modal แก้ไขรายรายการ
 $("#line-save").onclick = () => {
   const l = cart[editingLineIdx];
   if (l) {
@@ -1780,7 +2133,6 @@ $("#line-del").onclick = () => {
   render();
 };
 
-// Events ของ Modal พักบิล & สรุปกะ
 $("#hold-btn").onclick = holdCurrentBill;
 $("#recall-btn").onclick = openHoldModal;
 $("#hold-list").addEventListener("click", e => {
@@ -1841,6 +2193,7 @@ $("#failx").onclick = () => {
 
 document.addEventListener("keydown", e => {
   if (document.querySelector("dialog[open]")) return;
+  if ($("#page-pos").style.display === "none") return;
   if (e.key === "F2") { e.preventDefault(); $("#q").focus(); }
   if (e.key === "F4") { e.preventDefault(); holdCurrentBill(); }
   if (e.key === "F8") { e.preventDefault(); pay(); }
@@ -1849,7 +2202,6 @@ document.addEventListener("keydown", e => {
 });
 
 window.addEventListener("online", flush);
-// Background Auto-Sync ทุก 20 วินาที
 setInterval(() => { if (navigator.onLine) flush(); }, 20000);
 
 // ===== เริ่มต้นระบบ =====
@@ -1863,7 +2215,8 @@ async function start(user) {
   $("#sound-btn").textContent = soundEnabled ? "🔊 เสียง" : "🔇 ปิดเสียง";
 
   $("#lg").style.display = "none";
-  $("#app").style.display = "grid";
+  $("#topbar").style.display = "flex";
+  $("#page-pos").style.display = "grid";
   $("#who").textContent = user.email;
   setViewMode(viewMode);
 
@@ -1878,7 +2231,7 @@ async function start(user) {
   const ok = await refresh(false);
   if (!ok && !c) {
     $("#msg").className = "err";
-    $("#msg").textContent = "โหลดสินค้าไม่ได้ ตรวจอินเทอร์เน็ตแล้วเปิดใหม่";
+    $("#msg").textContent = "โหลดสินค้าไม่ได้ ตรวจอินเทอร์เน็ตหรือตั้งค่า Supabase URL/Key";
   } else if (!ok) {
     $("#msg").textContent = "ออฟไลน์ ใช้ข้อมูลสินค้าที่บันทึกไว้ในเครื่อง";
   }
