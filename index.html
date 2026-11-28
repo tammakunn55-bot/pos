@@ -744,6 +744,7 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
       <span>📦 จัดการสินค้าและสต็อกคงเหลือ</span>
       <span class="view-ctrl">
         <button type="button" class="vbtn on" id="new-prod-btn">+ เพิ่มสินค้าใหม่</button>
+        <button type="button" class="vbtn" id="import-products-btn">⇧ นำเข้าสินค้า</button>
         <button type="button" class="vbtn" id="stock-sync-btn">🔄 รีเฟรช</button>
       </span>
     </h2>
@@ -827,6 +828,21 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
       <button type="submit" class="pay" id="np-save" style="font-size:16px;padding:10px">บันทึกสินค้า</button>
     </div>
   </form>
+</dialog>
+
+
+<!-- Modal: นำเข้าสินค้าจากไฟล์ พร้อมตรวจสอบก่อนยืนยัน -->
+<dialog id="dlg-import" style="width:min(1100px,96vw);max-width:1100px">
+  <div class="dlg-head"><h2>⇧ นำเข้าสินค้า</h2><button class="dlg-close" data-close="dlg-import">×</button></div>
+  <div style="padding:14px">
+    <p class="hint">รองรับ CSV, TXT, JSON, XML, Excel (.xlsx/.xls), PDF แบบมีข้อความ และรูป JPG/PNG/WEBP/GIF โดยจับคู่รูปจากชื่อไฟล์กับ SKU</p>
+    <input id="imp-files" type="file" multiple accept=".csv,.txt,.json,.xml,.xlsx,.xls,.pdf,.jpg,.jpeg,.png,.webp,.gif" class="form-input">
+    <p id="imp-count" class="hint" style="margin:10px 0">เลือกไฟล์เพื่อเริ่มตรวจสอบ</p>
+    <div class="table-scroll" style="max-height:42vh;overflow:auto"><table><thead><tr><th>แถว</th><th>ชื่อสินค้า</th><th>รหัส</th><th>SKU</th><th>บาร์โค้ด</th><th>สต็อก</th><th>ราคา</th><th>รูป</th></tr></thead><tbody id="imp-preview"></tbody></table></div>
+    <details style="margin-top:10px"><summary>รายการซ้ำ / ข้อผิดพลาด</summary><pre id="imp-issues" style="white-space:pre-wrap;max-height:150px;overflow:auto;font:12px Sarabun"></pre></details>
+    <p class="hint">ระบบจะข้ามรายการซ้ำ ไม่แก้ไขสินค้าเดิม และต้องกดยืนยันก่อนบันทึกทุกครั้ง · PDF สแกนภาพยังไม่รองรับ OCR</p>
+    <div class="act-bar"><button type="button" class="pay" id="imp-confirm" disabled>ยืนยันนำเข้า</button></div>
+  </div>
 </dialog>
 
 <!-- Modal: ปรับปรุงสต็อก (Stock Adjustment) -->
@@ -2244,6 +2260,180 @@ $("#out").onclick = async e => {
 sb.auth.getSession().then(({ data }) => {
   if (data.session) start(data.session.user);
 });
+
+// ===== SMART-POS Product Import: preview-first, duplicate-safe =====
+(() => {
+  const $i = s => document.querySelector(s);
+  const state = { rows: [], images: new Map(), errors: [], duplicates: [], ready: false };
+  const libPromises = {};
+  function loadLib(name, url) {
+    if (window[name]) return Promise.resolve(window[name]);
+    if (!libPromises[name]) libPromises[name] = new Promise((resolve,reject)=>{
+      const script=document.createElement('script');script.src=url;script.async=true;
+      script.onload=()=>window[name]?resolve(window[name]):reject(new Error('ไม่พบไลบรารี '+name));
+      script.onerror=()=>reject(new Error('ดาวน์โหลดตัวอ่านไฟล์ไม่สำเร็จ: '+name));document.head.appendChild(script);
+    });
+    return libPromises[name];
+  }
+  const aliases = {
+    code: ['code','product_code','รหัสสินค้า','รหัส','รหัสหลัก'],
+    name: ['name','product_name','ชื่อสินค้า','ชื่อ'],
+    category: ['category','หมวดหมู่','ประเภทสินค้า'],
+    sku: ['sku','sku_code','รหัสsku','รหัสสินค้าsku'],
+    barcode: ['barcode','บาร์โค้ด','บาร์โคด','ean'],
+    variant: ['variant','ตัวเลือก','รุ่น','ขนาด','สี'],
+    unit: ['unit','base_unit','หน่วย','หน่วยนับ','หน่วยหลัก'],
+    cost: ['cost','ต้นทุน','ราคาทุน'],
+    price: ['price','sale_price','ราคาขาย','ราคา'],
+    stock: ['stock','quantity','qty','จำนวน','คงเหลือ','สต็อก'],
+    min_stock: ['min_stock','ขั้นต่ำ','สต็อกขั้นต่ำ'],
+    image: ['image','image_url','รูป','รูปภาพ','ไฟล์รูป']
+  };
+  const normKey = s => String(s ?? '').trim().toLowerCase().replace(/[\s_\-]/g,'');
+  const get = (obj, key) => {
+    const keys = Object.keys(obj || {});
+    const found = keys.find(k => aliases[key].some(a => normKey(a) === normKey(k)));
+    return found == null ? '' : obj[found];
+  };
+  const num = (v, fallback=0) => {
+    if (v === '' || v == null) return fallback;
+    const n = Number(String(v).replace(/,/g,'').trim());
+    return Number.isFinite(n) ? n : NaN;
+  };
+  function parseCSV(text) {
+    const out=[]; let row=[], cell='', quoted=false;
+    for(let i=0;i<text.length;i++) { const c=text[i];
+      if(c==='"' && quoted && text[i+1]==='"'){cell+='"';i++;}
+      else if(c==='"') quoted=!quoted;
+      else if(c===',' && !quoted){row.push(cell);cell='';}
+      else if((c==='\n'||c==='\r')&&!quoted){ if(c==='\r'&&text[i+1]==='\n')i++; row.push(cell); if(row.some(x=>String(x).trim()!==''))out.push(row); row=[];cell=''; }
+      else cell+=c;
+    }
+    row.push(cell); if(row.some(x=>String(x).trim()!==''))out.push(row);
+    if(!out.length)return [];
+    const headers=out.shift().map(x=>String(x).replace(/^\uFEFF/,'').trim());
+    return out.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])));
+  }
+  async function parseFile(file) {
+    const ext=file.name.split('.').pop().toLowerCase();
+    if(['jpg','jpeg','png','webp','gif'].includes(ext)) return {images:[file],rows:[]};
+    if(ext==='csv' || ext==='txt') return {rows:parseCSV(await file.text())};
+    if(ext==='json') { const j=JSON.parse(await file.text()); return {rows:Array.isArray(j)?j:(j.products||j.items||j.rows||j.data||[])}; }
+    if(ext==='xml') {
+      const doc=new DOMParser().parseFromString(await file.text(),'application/xml');
+      if(doc.querySelector('parsererror')) throw new Error('รูปแบบ XML ไม่ถูกต้อง');
+      const nodes=[...doc.querySelectorAll('product, item, row, record')];
+      return {rows:nodes.map(n=>Object.fromEntries([...n.children].map(c=>[c.tagName,c.textContent.trim()]))) };
+    }
+    if(['xlsx','xls'].includes(ext)) {
+      if(!window.XLSX) await loadLib('XLSX','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+      const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      return {rows:XLSX.utils.sheet_to_json(sheet,{defval:''})};
+    }
+    if(ext==='pdf') {
+      if(!window.pdfjsLib) await loadLib('pdfjsLib','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      if(pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+      const lines=[];
+      for(let p=1;p<=pdf.numPages;p++){ const page=await pdf.getPage(p); const c=await page.getTextContent();
+        const items=c.items.filter(x=>x.str.trim());
+        const grouped=[]; let lastY=null, line='';
+        for(const it of items){ const y=Math.round(it.transform[5]); if(lastY!==null&&Math.abs(y-lastY)>3){grouped.push(line);line='';} line+=(line?' ':'')+it.str;lastY=y; }
+        if(line)grouped.push(line); lines.push(...grouped);
+      }
+      const table=lines.filter(x=>x.includes('|')).map(x=>x.split('|').map(v=>v.trim()));
+      if(table.length>=2){const h=table.shift();return {rows:table.map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i]||''])))};}
+      throw new Error('PDF นี้ไม่พบตารางที่อ่านได้ รองรับเฉพาะ PDF ที่มีข้อความและตารางคั่นด้วย |; PDF สแกนต้องแปลงเป็น Excel/CSV ก่อน');
+    }
+    throw new Error('ไม่รองรับไฟล์ .' + ext);
+  }
+  function normalize(raw,index) {
+    const r={code:String(get(raw,'code')||'').trim(),name:String(get(raw,'name')||'').trim(),category:String(get(raw,'category')||'ทั่วไป').trim()||'ทั่วไป',sku:String(get(raw,'sku')||'').trim(),barcode:String(get(raw,'barcode')||'').trim(),variant:String(get(raw,'variant')||'').trim(),unit:String(get(raw,'unit')||'ชิ้น').trim()||'ชิ้น',cost:num(get(raw,'cost')),price:num(get(raw,'price')),stock:num(get(raw,'stock')),min_stock:num(get(raw,'min_stock')),image:String(get(raw,'image')||'').trim(),row:index+1};
+    if(!r.sku) r.sku=r.code;
+    return r;
+  }
+  async function fetchAll(table,cols) {
+    let all=[],from=0;
+    for(;;){const {data,error}=await sb.from(table).select(cols).order('id').range(from,from+999);if(error)throw error;all=all.concat(data||[]);if(!data||data.length<1000)break;from+=1000;}
+    return all;
+  }
+  async function preview(files) {
+    state.rows=[];state.images.clear();state.errors=[];state.duplicates=[];
+    const parsed=[];
+    for(const f of files){const p=await parseFile(f);parsed.push(...(p.rows||[]));for(const im of p.images||[]){const key=im.name.replace(/\.[^.]+$/,'').trim().toLowerCase();state.images.set(key,im);}}
+    state.rows=parsed.map((r,i)=>normalize(r,i));
+    const bad=[]; const seenSku=new Set(),seenBc=new Set();
+    for(const r of state.rows){
+      if(!r.code||!r.name||!r.sku)bad.push({r,why:'ต้องมีรหัสสินค้า ชื่อสินค้า และ SKU'});
+      else if([r.cost,r.price,r.stock,r.min_stock].some(n=>!Number.isFinite(n))||r.cost<0||r.price<0||r.min_stock<0)bad.push({r,why:'ตัวเลขไม่ถูกต้องหรือค่าติดลบ'});
+      else if(seenSku.has(r.sku.toLowerCase()))bad.push({r,why:'SKU ซ้ำภายในไฟล์'});
+      else if(r.barcode&&seenBc.has(r.barcode))bad.push({r,why:'บาร์โค้ดซ้ำภายในไฟล์'});
+      else {seenSku.add(r.sku.toLowerCase());if(r.barcode)seenBc.add(r.barcode);}
+    }
+    const [ps,ss,us]=await Promise.all([fetchAll('products','id,code,name'),fetchAll('skus','id,code,legacy_sku,barcode'),fetchAll('units','id,barcode')]);
+    const pCodes=new Set(ps.map(x=>String(x.code).toLowerCase()));
+    const skuCodes=new Set(ss.flatMap(x=>[x.code,x.legacy_sku]).map(x=>String(x||'').toLowerCase()).filter(Boolean));
+    const barcodes=new Set([...ss,...us].map(x=>String(x.barcode||'')).filter(Boolean));
+    const dup=[];
+    for(const r of state.rows){
+      const skuCode=r.sku;
+      if(pCodes.has(r.code.toLowerCase()))dup.push({r,why:'รหัสสินค้าเดิมมีอยู่แล้ว'});
+      else if(skuCodes.has(skuCode.toLowerCase()))dup.push({r,why:'SKU เดิมมีอยู่แล้ว'});
+      else if(r.barcode&&barcodes.has(r.barcode))dup.push({r,why:'บาร์โค้ดเดิมมีอยู่แล้ว'});
+    }
+    state.errors=bad;state.duplicates=dup;
+    const badRows=new Set(bad.map(x=>x.r.row)); const dupRows=new Set(dup.map(x=>x.r.row));
+    const valid=state.rows.filter(r=>!badRows.has(r.row)&&!dupRows.has(r.row));
+    const body=valid.slice(0,200).map(r=>`<tr><td>${r.row}</td><td>${esc(r.name)}</td><td>${esc(r.code)}</td><td>${esc(r.sku)}</td><td>${esc(r.barcode)}</td><td>${r.stock}</td><td>${r.price.toFixed(2)}</td><td>${state.images.has(r.sku.toLowerCase())?'พบรูป':'-'}</td></tr>`).join('');
+    $i('#imp-preview').innerHTML=body||'<tr><td colspan="8" class="empty">ไม่มีรายการที่พร้อมนำเข้า</td></tr>';
+    $i('#imp-count').textContent=`อ่านได้ ${state.rows.length} รายการ · พร้อมนำเข้า ${valid.length} · ซ้ำ ${dup.length} · ผิดรูปแบบ ${bad.length}`;
+    $i('#imp-issues').textContent=[...dup.map(x=>`แถว ${x.r.row}: ${x.why}`),...bad.map(x=>`แถว ${x.r.row}: ${x.why}`)].slice(0,30).join('\n')||'ไม่พบข้อมูลซ้ำหรือข้อผิดพลาด';
+    state.ready=valid.length>0;$i('#imp-confirm').disabled=!state.ready;
+    state.valid=valid;
+  }
+  async function uploadImage(file,sku) {
+    const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    const safe=String(sku).replace(/[^a-zA-Z0-9_-]/g,'_');
+    const path=`imports/${Date.now()}_${safe}.${ext}`;
+    const {error}=await sb.storage.from('products').upload(path,file,{upsert:false,contentType:file.type||undefined});
+    if(error)throw error;return path;
+  }
+  async function commit() {
+    if(!state.ready)return;
+    const btn=$i('#imp-confirm');btn.disabled=true;btn.textContent='กำลังนำเข้า...';
+    let ok=0,fail=[];
+    const groups=new Map();
+    for(const r of state.valid){if(!groups.has(r.code))groups.set(r.code,[]);groups.get(r.code).push(r);}
+    for(const [code,rows] of groups){let productId=null;const uploadedPaths=[];
+      try {
+        const first=rows[0];
+        if(rows.some(r=>r.name!==first.name||r.category!==first.category))throw new Error('รหัสสินค้าเดียวกันมีชื่อหรือหมวดหมู่ไม่ตรงกัน');
+        const {data:p,error:pe}=await sb.from('products').insert({code,name:first.name,category:first.category}).select('id').single();if(pe)throw pe;productId=p.id;
+        let productImage=null;
+        for(const r of rows){
+          const imageFile=state.images.get(r.sku.toLowerCase());
+          const imagePath=imageFile?await uploadImage(imageFile,r.sku):(/^https?:\/\//i.test(r.image)?r.image:null);
+          if(imageFile&&imagePath)uploadedPaths.push(imagePath);
+          if(!productImage&&imagePath)productImage=imagePath;
+          const {data:s,error:se}=await sb.from('skus').insert({product_id:productId,legacy_sku:r.sku,variant:r.variant,barcode:r.barcode||null,base_unit:r.unit,cost:r.cost,stock:r.stock,min_stock:r.min_stock,image_url:imagePath}).select('id').single();if(se)throw se;
+          const {error:ue}=await sb.from('units').insert({sku_id:s.id,name:r.unit,ratio:1,price:r.price,barcode:r.barcode||null});if(ue)throw ue;
+        }
+        if(productImage){const {error:ie}=await sb.from('products').update({image_url:productImage}).eq('id',productId);if(ie)throw ie;}
+        ok+=rows.length;
+      } catch(e){fail.push(`รหัส ${code}: ${e.message||e}`);if(productId)await sb.from('products').delete().eq('id',productId);if(uploadedPaths.length)await sb.storage.from('products').remove(uploadedPaths);}
+    }
+    await refresh(true);
+    alert(`นำเข้าสำเร็จ ${ok} SKU\nไม่สำเร็จ ${fail.length} กลุ่มสินค้า${fail.length?'\n\n'+fail.slice(0,10).join('\n'):''}`);
+    btn.textContent='ยืนยันนำเข้า';btn.disabled=false;
+    if(ok){$i('#dlg-import').close();}
+  }
+  // Public hooks are local to this module; no background downloads or auto-import.
+  $i('#import-products-btn').addEventListener('click',()=>{$i('#imp-files').value='';$i('#imp-count').textContent='เลือกไฟล์เพื่อเริ่มตรวจสอบ';$i('#imp-preview').innerHTML='';$i('#imp-issues').textContent='';$i('#imp-confirm').disabled=true;$i('#dlg-import').showModal();});
+  $i('#imp-files').addEventListener('change',async e=>{const files=[...e.target.files];if(!files.length)return;$i('#imp-count').textContent='กำลังอ่านและตรวจสอบไฟล์...';try{await preview(files);}catch(err){$i('#imp-count').textContent='อ่านไฟล์ไม่สำเร็จ: '+(err.message||err);$i('#imp-confirm').disabled=true;}});
+  $i('#imp-confirm').addEventListener('click',commit);
+})();
+
 </script>
 </body>
 </html>
